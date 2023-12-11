@@ -12,8 +12,8 @@ use rocksdb::backup::{
     RestoreOptions as DBRestoreOptions,
 };
 use rocksdb::{
-    DBCompactionStyle, DBCompressionType, Error as DBError, FlushOptions, Options as DBOptions,
-    WriteBatch, WriteOptions, DB,
+    DBCompactionStyle, DBCompressionType, Env as DBEnv, Error as DBError, FlushOptions,
+    Options as DBOptions, WriteBatch, WriteOptions, DB,
 };
 use std::fmt;
 use std::fs;
@@ -298,8 +298,13 @@ impl StoreKVPool {
                     .map_err(|_| io_error!("database open failure"))?;
 
                 // Initialize KV database backup engine
+                let kv_backup_options = DBBackupEngineOptions::new(&kv_backup_path)
+                    .map_err(|_| io_error!("backup engine options acquire failure"))?;
+                let kv_backup_environment = DBEnv::new()
+                    .map_err(|_| io_error!("backup engine environment acquire failure"))?;
+
                 let mut kv_backup_engine =
-                    DBBackupEngine::open(&DBBackupEngineOptions::default(), &kv_backup_path)
+                    DBBackupEngine::open(&kv_backup_options, &kv_backup_environment)
                         .map_err(|_| io_error!("backup engine failure"))?;
 
                 // Proceed actual KV database backup
@@ -350,8 +355,13 @@ impl StoreKVPool {
                 fs::create_dir_all(&kv_path)?;
 
                 // Initialize KV database backup engine
+                let kv_backup_options = DBBackupEngineOptions::new(&origin_path)
+                    .map_err(|_| io_error!("backup engine options acquire failure"))?;
+                let kv_backup_environment = DBEnv::new()
+                    .map_err(|_| io_error!("backup engine environment acquire failure"))?;
+
                 let mut kv_backup_engine =
-                    DBBackupEngine::open(&DBBackupEngineOptions::default(), &origin_path)
+                    DBBackupEngine::open(&kv_backup_options, &kv_backup_environment)
                         .map_err(|_| io_error!("backup engine failure"))?;
 
                 kv_backup_engine
